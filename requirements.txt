@@ -1,0 +1,2 @@
+pydantic-settings
+python-telegram-bot
