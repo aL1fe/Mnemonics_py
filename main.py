@@ -1,22 +1,23 @@
+from aiogram import Bot, Dispatcher
+from aiogram.types import Message, CallbackQuery
+from aiogram.filters import Command
+import asyncio
+import logging
+
 from config import settings
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from message_handler import router
 
 
-BOT_TOKEN = settings.TELEGRAM_API_TOKEN
-print(BOT_TOKEN[:5])
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+bot = Bot(settings.TELEGRAM_API_TOKEN)
+dp = Dispatcher()
+dp.include_router(router)
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message:
-        print("Received /start command")
-        await update.message.reply_text("hello")
-
-
-def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.run_polling()
+async def main():
+    await dp.start_polling(bot)
+    
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

@@ -1,2 +1,2 @@
 pydantic-settings
-python-telegram-bot
+aiogram==3.23.0
