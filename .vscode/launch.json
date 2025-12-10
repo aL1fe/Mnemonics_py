@@ -2,14 +2,21 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Current File",
+            "name": "Test",
             "type": "debugpy",
             "request": "launch",
-            "program": "main.py",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/",           
+            "program": "main.py",          
             "env": {
-                "ENVIRONMENT": "dev",                
+                "ENVIRONMENT": "dev",
+            }
+        },
+        {
+            "name": "Prod",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",          
+            "env": {
+                "ENVIRONMENT": "prod",
             }
         }
     ]
