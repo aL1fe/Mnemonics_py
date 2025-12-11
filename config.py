@@ -1,14 +1,10 @@
 import os
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    TELEGRAM_API_TOKEN: str = "DEFAULT_TELEGRAM_API_TOKEN"
-
-    class Config:
-        if os.getenv("ENVIRONMENT") == "prod":
-            env_file = ".env.prod"
-        else:
-            env_file = ".env.dev"
+    model_config = SettingsConfigDict(env_file=f".env.{os.getenv('ENVIRONMENT', 'dev')}")
+    
+    TELEGRAM_API_TOKEN: str
 
 settings = Settings()
