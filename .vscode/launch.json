@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Test",
+            "name": "dev",
             "type": "debugpy",
             "request": "launch",
             "program": "main.py",          
@@ -11,7 +11,7 @@
             }
         },
         {
-            "name": "Prod",
+            "name": "prod",
             "type": "debugpy",
             "request": "launch",
             "program": "main.py",          

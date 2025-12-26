@@ -60,9 +60,11 @@ async def start_with_keyboard(message: Message):
 async def handle_know(message: Message):
     """Обработка кнопки 'Знаю'"""
     user_id = message.from_user.id
-    username = message.from_user.username or "Неизвестный"
+    username = message.from_user.username
+    first_name = message.from_user.first_name 
+    last_name = message.from_user.last_name 
     
-    await message.answer(f"Пользователь {username} (ID: {user_id}) выбрал: Знаю")
+    await message.answer(f"Пользователь {username} {first_name} {last_name} (ID: {user_id}) выбрал: Знаю")
 
 
 async def handle_dont_know(message: Message):
