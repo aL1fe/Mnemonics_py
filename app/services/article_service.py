@@ -11,6 +11,11 @@ class ArticleService:
 
     
     async def get_all(self, db: AsyncSession) -> list[Article]:
+        '''
+        Returns all articles stored in the database from the "main_dictionary" table.
+        The method retrieves article ORM entities via the repository layer and
+        maps them to domain models before returning the result.
+        '''
         atricle_list_orm = await self.article_repo.get_all(db)
         atricle_list = [Article.model_validate(row, from_attributes=True) for row in atricle_list_orm]
         return list(atricle_list)

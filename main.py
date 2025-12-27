@@ -26,13 +26,6 @@ dp.include_router(router)
 
 
 async def main():
-    async with async_session() as db_session:
-        user_article_repo = UserArticleRepo()
-        user_article_service = UserArticleService(user_article_repo)
-        res = await user_article_service.get_next_article(db_session, 1, None)
-        print(f'{res=}')
-
-    return
     await dp.start_polling(bot)
     
 

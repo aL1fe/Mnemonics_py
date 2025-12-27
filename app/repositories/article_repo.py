@@ -9,7 +9,9 @@ from app.models.article import ArticleOrm
 class ArticleRepo:
     @staticmethod
     async def get_all(db: AsyncSession) -> Sequence[ArticleOrm]:
+        '''Returns all articles stored in the database from the "main_dictionary" table.'''
         query = select(ArticleOrm)
-        print(query.compile(compile_kwargs={"literal_binds": True}))
-        result = await db.execute(query)       
+        # print(query.compile(compile_kwargs={"literal_binds": True}))
+        result = await db.execute(query)
         return result.scalars().all()
+    

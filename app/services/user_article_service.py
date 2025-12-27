@@ -37,12 +37,12 @@ class UserArticleService:
         '''
         user_vocabulary_orm = await self.user_article_repo.get_vocabulary(db, user_id)
         user_vocabulary = [UserArticle.model_validate(row, from_attributes=True) for row in user_vocabulary_orm]
-        # Remove last article
         if last_article:
+        # Exclude last article
             user_vocabulary = [user_article for user_article in user_vocabulary if user_article.article.id != last_article.id]
         total_weight = sum(user_article.weight for user_article in user_vocabulary)
         target_weight = random.uniform(1, total_weight)
-
+        # Random selection algorithm using weighted probability
         current_weight = 0
         for user_article in user_vocabulary:
             current_weight += user_article.weight
@@ -60,7 +60,6 @@ class UserArticleService:
         '''
         user_article = await self.user_article_repo.get(db, user_artilce_id)
         if user_article:
-            res = user_article.weight
             weight = user_article.weight + delta
             weight if weight >= 1 else 1
             await self.user_article_repo.update_weight(db, user_article, weight)

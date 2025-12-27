@@ -1,116 +1,119 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import Command
+
+import app.models  # noqa
+from app.database.session import async_session
+from app.repositories.user_repo import UserRepo
+from app.services.user_service import UserService
+from app.repositories.article_repo import ArticleRepo
+from app.services.article_service import ArticleService
+from app.repositories.user_article_repo import UserArticleRepo
+from app.services.user_article_service import UserArticleService
 
 
 router = Router()
 
 
-@router.message(Command("start"))
-async def start_command(message: Message):
-    """Обработка команды /start"""
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Англійська", callback_data='english')],
-        [InlineKeyboardButton(text="Нiмецька", callback_data='german')],
-        [InlineKeyboardButton(text="Французька", callback_data='french')]
-    ])
-    
-    await message.answer(
-        "Оберіть мову для вивчення:", 
-        reply_markup=keyboard
-    )
-
-
-@router.callback_query(F.data.in_(['english', 'german', 'french']))
-async def handle_language_selection(callback: CallbackQuery):
-    """Обработка выбора языка"""
-    await callback.answer()
-    
-    button_texts = {
-        'english': 'англійську',
-        'german': 'німецьку', 
-        'french': 'французьку',
-    }
-    
-    selected = button_texts.get(callback.data, callback.data)
-    await callback.message.edit_text(
-        f"Чудово ви обрали для <tg-spoiler>вивчення</tg-spoiler> <b>{selected}</b> мову", 
-        parse_mode='HTML'
-    )
-
-
-@router.message(Command("keyboard"))
-async def start_with_keyboard(message: Message):
-    """Показать клавиатуру с опциями"""
-    keyboard = ReplyKeyboardMarkup(
+def get_keyboard():
+    # Set up keyboard
+        keyboard = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="Знаю"), KeyboardButton(text="Не знаю")],        
             [KeyboardButton(text="Слухати"), KeyboardButton(text="Вимовити")]
         ],
-        resize_keyboard=True
-    )
+        resize_keyboard=True)
+        return keyboard
+
+
+@router.message(Command("start"))
+async def start_command(message: Message):
+    async with async_session() as db_session:
+        user_article_service = UserArticleService(UserArticleRepo())
+
+        telegram_user_id = message.from_user.id  # type: ignore
+        telegram_user_name = message.from_user.username  # type: ignore
+        telegram_first_name = message.from_user.first_name  # type: ignore
+        telegram_last_name = message.from_user.last_name  # type: ignore
     
-    await message.answer(
-        "Обери дію:",
-        reply_markup=keyboard
-    )
+        # Check if user exist in the database
+        user_service = UserService(UserRepo())
+        current_user_id = await user_service.get_id_by_telegram_id(db_session, telegram_user_id)
+        current_user = None
+        if current_user_id is None:
+            # Create new user it the database
+            new_user = await user_service.create(db_session, 
+                telegram_user_id = telegram_user_id, 
+                telegram_user_name = telegram_user_name, 
+                telegram_first_name = telegram_first_name, 
+                telegram_last_name = telegram_last_name
+                )        
+            # Add user vocabulary to the new_user
+            article_service = ArticleService(ArticleRepo())
+            article_list = await article_service.get_all(db_session)
+            await user_article_service.init_user_vocabulary(db_session, 
+                user = new_user, 
+                article_list = article_list
+                )            
+            current_user = new_user
+        else:
+            current_user = await user_service.get_by_id(db_session, current_user_id)
+        
+        if current_user is None:
+            # Should never happen; added for type checker
+            await message.answer("Помилка. Користувач не знайдений.")
+            return
+        
+        keyboard = get_keyboard()
+                
+        if current_user.last_article is None:
+            # If last_article is None get next article and save it to the user.last_article
+            next_article = await user_article_service.get_next_article(db_session, current_user.id, last_article=None)
+            await user_service.update_last_article(db_session, current_user.id, next_article.id)
+            await message.answer(next_article.ukr_word)
+            await message.answer(f"<tg-spoiler>{next_article.eng_word}</tg-spoiler>", parse_mode='HTML', reply_markup=keyboard)
+        else:
+            # Send user.last_article
+            await message.answer(current_user.last_article.ukr_word)
+            await message.answer(f"<tg-spoiler>{current_user.last_article.eng_word}</tg-spoiler>", parse_mode='HTML', reply_markup=keyboard)
+        
 
-
-# Отдельные функции-обработчики
 async def handle_know(message: Message):
-    """Обработка кнопки 'Знаю'"""
-    user_id = message.from_user.id
-    username = message.from_user.username
-    first_name = message.from_user.first_name 
-    last_name = message.from_user.last_name 
-    
-    await message.answer(f"Пользователь {username} {first_name} {last_name} (ID: {user_id}) выбрал: Знаю")
+    await message.answer("Ви обрали: Знаю")
+    return
+    # TODO check if the user is_sync
+    # TODO get next article and assign it to the last article
+    telegram_user_id = message.from_user.id  # type: ignore
+    async with async_session() as db_session:
+        user_service = UserService(UserRepo())
+        current_user_id = await user_service.get_id_by_telegram_id(db_session, telegram_user_id)
+        if current_user_id is not None:
+            user_last_article_id = await user_service.get_last_article_id_by_user_id(db_session, current_user_id)
+            if user_last_article_id is not None:
+                user_article_service = UserArticleService(UserArticleRepo())
+                await user_article_service.update_weight(db_session, user_last_article_id, delta = -1)
+
+            user_article_service = UserArticleService(UserArticleRepo())    
+            next_article = await user_article_service.get_next_article(db_session, current_user_id, None)  
+            await message.answer(next_article.ukr_word)
+            await message.answer(f"<tg-spoiler>{next_article.eng_word}</tg-spoiler>", parse_mode='HTML')
+            # TODO and assign it to the last article
 
 
 async def handle_dont_know(message: Message):
-    """Обработка кнопки 'Не знаю'"""
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="🔴 Сложное", callback_data='difficult'),
-            InlineKeyboardButton(text="🟡 Среднее", callback_data='medium')
-        ],
-        [InlineKeyboardButton(text="🟢 Легкое", callback_data='easy')]
-    ])
-    
-    await message.answer(
-        "Насколько сложное это слово?", 
-        reply_markup=keyboard
-    )
+    await message.answer("Ви обрали: Не знаю")
 
 
 async def handle_listen(message: Message):
-    """Обработка кнопки 'Слухати'"""
     await message.answer("Ви обрали: Слухати")
 
 
 async def handle_pronounce(message: Message):
-    """Обработка кнопки 'Вимовити'"""
     await message.answer("Ви обрали: Вимовити")
-
-
-@router.callback_query(F.data.in_(['difficult', 'medium', 'easy']))
-async def handle_difficulty_selection(callback: CallbackQuery):
-    """Обработка выбора сложности"""
-    await callback.answer()
-    
-    difficulty_texts = {
-        'difficult': '🔴 Сложное',
-        'medium': '🟡 Среднее',
-        'easy': '🟢 Легкое'
-    }
-    
-    selected = difficulty_texts.get(callback.data, callback.data)
-    await callback.message.edit_text(f"Вы выбрали: {selected}")
 
 
 @router.message(F.text.in_(["Знаю", "Не знаю", "Слухати", "Вимовити"]))
 async def handle_keyboard_response(message: Message):
-    """Универсальный обработчик клавиатурных кнопок"""
     text = message.text
     handlers = {
         "Знаю": handle_know,
@@ -127,5 +130,5 @@ async def handle_keyboard_response(message: Message):
 
 @router.message()
 async def handle_other_messages(message: Message):
-    """Обработка всех остальных сообщений"""
+    '''Processing all other messages'''
     await message.answer(f"Ви написали: {message.text}")

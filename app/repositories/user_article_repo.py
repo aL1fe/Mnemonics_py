@@ -40,6 +40,12 @@ class UserArticleRepo:
     
     
     @staticmethod
+    async def get(db: AsyncSession, user_artilce_id: int) -> UserArticleOrm | None:
+        user_artilce = await db.get(UserArticleOrm, user_artilce_id)
+        return user_artilce
+    
+
+    @staticmethod
     async def update_weight(db: AsyncSession, user_artilce: UserArticleOrm, weight: int) -> None:
         '''
         Updates the weight of a user's article by applying the given delta value.
@@ -48,10 +54,4 @@ class UserArticleRepo:
         '''
         user_artilce.weight = weight
         await db.commit()
-
-
-    @staticmethod
-    async def get(db: AsyncSession, user_artilce_id: int) -> UserArticleOrm | None:
-        user_artilce = await db.get(UserArticleOrm, user_artilce_id)
-        return user_artilce
     
