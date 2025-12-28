@@ -2,9 +2,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import Optional
+import logging
 
 from app.models.user import UserOrm
 
+
+logger = logging.getLogger(__name__)
 
 class UserRepo:
     @staticmethod
@@ -16,16 +19,23 @@ class UserRepo:
         '''
         Creates a new user_orm record with the given Telegram data and returns the persisted UserOrm.
         '''
-        user = UserOrm(
-            telegram_user_id=telegram_user_id,
-            telegram_user_name=telegram_user_name,
-            telegram_first_name=telegram_first_name,
-            telegram_last_name=telegram_last_name
-        )
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
-        return user
+        try:
+            logger.debug(f"Creating user with telegram_user_id={telegram_user_id}")
+            user = UserOrm(
+                telegram_user_id=telegram_user_id,
+                telegram_user_name=telegram_user_name,
+                telegram_first_name=telegram_first_name,
+                telegram_last_name=telegram_last_name
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+            logger.info(f"User created successfully: id={user.id}, telegram_user_id={telegram_user_id}")
+            return user
+        except Exception as e:
+            await db.rollback()
+            logger.critical(f"Failed to create user with telegram_user_id={telegram_user_id}: {e}")
+            raise
     
 
     @staticmethod
@@ -37,6 +47,7 @@ class UserRepo:
                  .where(UserOrm.id == user_id)
                  .options(selectinload(UserOrm.last_article))
                 )
+        logger.debug(query.compile(compile_kwargs={"literal_binds": True}))
         result = await db.execute(query)
         return result.scalar_one_or_none()
 
@@ -49,6 +60,7 @@ class UserRepo:
         query = (select(UserOrm.id)
                  .where(UserOrm.telegram_user_id == telegram_user_id)
                 )
+        logger.debug(query.compile(compile_kwargs={"literal_binds": True}))
         result = await db.execute(query)
         return result.scalar_one_or_none()
     

@@ -1,9 +1,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
+import logging
 
 from app.models.article import Article
 from app.models.user import User, UserOrm
 from app.repositories.user_repo import UserRepo
+
+
+logger = logging.getLogger(__name__)
 
 
 def map_user_orm_to_user(user_orm: UserOrm) -> User:
@@ -54,8 +58,20 @@ class UserService:
         '''
         Retrieves a user by ID and returns it as a domain User, or None if not found.
         '''
-        user_orm = await self.user_repo.get_by_id(db, user_id)
-        return map_user_orm_to_user(user_orm) if user_orm else None
+        logger.debug(f"Attempting to get user with id={user_id}")
+        # user_orm = await self.user_repo.get_by_id(db, user_id)
+        # return map_user_orm_to_user(user_orm) if user_orm else None
+        try:
+            user_orm = await self.user_repo.get_by_id(db, user_id)
+            if user_orm:
+                logger.info(f"User found: id={user_id}, telegram_user_id={user_orm.telegram_user_id}")
+                return map_user_orm_to_user(user_orm)
+            else:
+                logger.warning(f"User with id={user_id} not found")
+                return None
+        except Exception as e:
+            logger.critical(f"Error while retrieving user with id={user_id}: {e}")
+            return None
     
 
     async def get_id_by_telegram_id(self, db: AsyncSession, telegram_user_id: int) -> int | None:
