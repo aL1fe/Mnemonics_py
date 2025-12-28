@@ -2,7 +2,6 @@ from aiogram import Router, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import Command
 
-import app.models  # noqa
 from app.database.session import async_session
 from app.repositories.user_repo import UserRepo
 from app.services.user_service import UserService
@@ -15,7 +14,7 @@ from app.services.user_article_service import UserArticleService
 router = Router()
 
 
-def get_keyboard():
+def get_keyboard() -> ReplyKeyboardMarkup:
     # Set up keyboard
         keyboard = ReplyKeyboardMarkup(
         keyboard=[
@@ -24,6 +23,39 @@ def get_keyboard():
         ],
         resize_keyboard=True)
         return keyboard
+
+
+async def sync_user_vocabulary(user_id: int) -> None:
+    pass
+
+
+async def handle_article_feedback(message: Message, delta: int) -> None:
+    # TODO check if the user is_sync
+    telegram_user_id = message.from_user.id  # type: ignore
+    async with async_session() as db_session:
+        user_service = UserService(UserRepo())
+        current_user_id = await user_service.get_id_by_telegram_id(db_session, telegram_user_id)
+        if current_user_id is None:
+            # Should never happen; added for type checker
+            await message.answer("Помилка. Користувач не знайдений.")
+            return
+
+        current_user = await user_service.get_by_id(db_session, current_user_id)        
+        if current_user is None:
+            # Should never happen; added for type checker
+            await message.answer("Помилка. Користувач не знайдений.")
+            return
+        
+        last_article_id = current_user.last_article.id if current_user.last_article is not None else None
+        if last_article_id is not None:
+            user_article_service = UserArticleService(UserArticleRepo())
+            await user_article_service.update_weight(db_session, current_user_id, last_article_id, delta = delta)
+
+        user_article_service = UserArticleService(UserArticleRepo())    
+        next_article = await user_article_service.get_next_article(db_session, current_user_id, current_user.last_article)
+        await user_service.update_last_article(db_session, current_user.id, next_article.id)
+        await message.answer(next_article.ukr_word)
+        await message.answer(f"<tg-spoiler>{next_article.eng_word}</tg-spoiler>", parse_mode='HTML')
 
 
 @router.message(Command("start"))
@@ -57,6 +89,7 @@ async def start_command(message: Message):
                 )            
             current_user = new_user
         else:
+            # Get current user from the database
             current_user = await user_service.get_by_id(db_session, current_user_id)
         
         if current_user is None:
@@ -79,29 +112,11 @@ async def start_command(message: Message):
         
 
 async def handle_know(message: Message):
-    await message.answer("Ви обрали: Знаю")
-    return
-    # TODO check if the user is_sync
-    # TODO get next article and assign it to the last article
-    telegram_user_id = message.from_user.id  # type: ignore
-    async with async_session() as db_session:
-        user_service = UserService(UserRepo())
-        current_user_id = await user_service.get_id_by_telegram_id(db_session, telegram_user_id)
-        if current_user_id is not None:
-            user_last_article_id = await user_service.get_last_article_id_by_user_id(db_session, current_user_id)
-            if user_last_article_id is not None:
-                user_article_service = UserArticleService(UserArticleRepo())
-                await user_article_service.update_weight(db_session, user_last_article_id, delta = -1)
-
-            user_article_service = UserArticleService(UserArticleRepo())    
-            next_article = await user_article_service.get_next_article(db_session, current_user_id, None)  
-            await message.answer(next_article.ukr_word)
-            await message.answer(f"<tg-spoiler>{next_article.eng_word}</tg-spoiler>", parse_mode='HTML')
-            # TODO and assign it to the last article
+    await handle_article_feedback(message, delta=-1)
 
 
 async def handle_dont_know(message: Message):
-    await message.answer("Ви обрали: Не знаю")
+    await handle_article_feedback(message, delta=+1)
 
 
 async def handle_listen(message: Message):

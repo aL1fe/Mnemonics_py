@@ -3,11 +3,13 @@ from typing import Optional
 
 from app.models.article import Article
 from app.models.user import User, UserOrm
-from app.models.user_article import UserArticle
 from app.repositories.user_repo import UserRepo
 
 
 def map_user_orm_to_user(user_orm: UserOrm) -> User:
+    '''
+    Converts a UserOrm object to a domain User object, including mapping the last article if it exists.
+    '''
     last_article = None
     if user_orm.last_article:
         last_article = Article(
@@ -37,7 +39,9 @@ class UserService:
         telegram_user_name: Optional[str],
         telegram_first_name: Optional[str],
         telegram_last_name: Optional[str]) -> User:
-
+        '''
+        Creates a new user in the database and returns it as a domain User object.
+        '''
         user_orm = await self.user_repo.create(db, 
             telegram_user_id, 
             telegram_user_name, 
@@ -47,22 +51,25 @@ class UserService:
     
 
     async def get_by_id(self, db: AsyncSession, user_id: int) -> User | None:
+        '''
+        Retrieves a user by ID and returns it as a domain User, or None if not found.
+        '''
         user_orm = await self.user_repo.get_by_id(db, user_id)
         return map_user_orm_to_user(user_orm) if user_orm else None
     
 
     async def get_id_by_telegram_id(self, db: AsyncSession, telegram_user_id: int) -> int | None:
+        '''
+        Returns the database ID of a user based on their telegram_user_id.
+        '''
         return await self.user_repo.get_id_by_telegram_id(db, telegram_user_id)
 
     
     async def update_last_article(self, db: AsyncSession, user_id: int, last_article_id: int) -> None:
+        '''
+        Updates the last_article_id for a given user.
+        '''
         user_orm = await self.user_repo.get_by_id(db, user_id)
         if user_orm is not None:
             await self.user_repo.update_last_article(db, user_orm, last_article_id)
         
-
-    # async def get_last_article_id_by_user_id(self, db: AsyncSession, telegram_user_id: int) -> int | None:
-    #     return await self.user_repo.get_last_article_id_by_user_id(db, telegram_user_id)    
-
-
-

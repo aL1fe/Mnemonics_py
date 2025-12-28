@@ -1,11 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import selectinload
 from typing import Optional
 
-from app.models.article import ArticleOrm
 from app.models.user import UserOrm
-from app.models.user_article import UserArticle
 
 
 class UserRepo:
@@ -15,6 +13,9 @@ class UserRepo:
         telegram_user_name: Optional[str],
         telegram_first_name: Optional[str],
         telegram_last_name: Optional[str]) -> UserOrm:
+        '''
+        Creates a new user_orm record with the given Telegram data and returns the persisted UserOrm.
+        '''
         user = UserOrm(
             telegram_user_id=telegram_user_id,
             telegram_user_name=telegram_user_name,
@@ -29,6 +30,9 @@ class UserRepo:
 
     @staticmethod
     async def get_by_id(db: AsyncSession, user_id: int) -> UserOrm | None:
+        '''
+        Retrieves a user_orm by their database ID, also loading the last associated article.
+        '''
         query = (select(UserOrm)
                  .where(UserOrm.id == user_id)
                  .options(selectinload(UserOrm.last_article))
@@ -39,6 +43,9 @@ class UserRepo:
 
     @staticmethod
     async def get_id_by_telegram_id(db: AsyncSession, telegram_user_id: int) -> int | None:
+        '''
+        Returns the database ID of a user based on their Telegram user ID.
+        '''
         query = (select(UserOrm.id)
                  .where(UserOrm.telegram_user_id == telegram_user_id)
                 )
@@ -46,22 +53,10 @@ class UserRepo:
         return result.scalar_one_or_none()
     
 
-    # @staticmethod
-    # async def get_last_article_id_by_user_id(db: AsyncSession, user_id: int) -> int | None:
-    #     query = (select(UserOrm.last_article_id)
-    #              .where(UserOrm.id == user_id)
-    #             )
-    #     result = await db.execute(query)
-    #     return result.scalar_one_or_none()
-    
-
     @staticmethod
     async def update_last_article(db: AsyncSession, user_orm: UserOrm, last_article_id: int) -> None:
+        '''
+        Updates the last_article_id field for a given user_orm.
+        '''
         user_orm.last_article_id = last_article_id
-        await db.commit()
-
-
-    @staticmethod
-    async def delete(db: AsyncSession, user_orm: UserOrm):
-        await db.delete(user_orm)
         await db.commit()

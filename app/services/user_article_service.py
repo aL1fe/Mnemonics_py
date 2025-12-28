@@ -16,6 +16,12 @@ class UserArticleService:
 
 
     async def init_user_vocabulary(self, db: AsyncSession, user: User, article_list: list[Article]) -> None:
+        '''
+        Initializes the user's vocabulary with a given list of articles.  
+        For each article, a "UserArticle" instance is created with a default weight,  
+        and all instances are saved to the database in bulk.  
+        This sets up the initial state of the user's learning progress for the articles.
+        '''
         user_articles = [
             UserArticle(
                 id = -1,  # Will be reassigned
@@ -24,7 +30,6 @@ class UserArticleService:
             )
             for article in article_list
         ]
-
         await self.user_article_repo.bulk_create(db, user, user_articles)
            
 
@@ -41,7 +46,7 @@ class UserArticleService:
         # Exclude last article
             user_vocabulary = [user_article for user_article in user_vocabulary if user_article.article.id != last_article.id]
         total_weight = sum(user_article.weight for user_article in user_vocabulary)
-        target_weight = random.uniform(1, total_weight)
+        target_weight = random.randint(1, total_weight)
         # Random selection algorithm using weighted probability
         current_weight = 0
         for user_article in user_vocabulary:
@@ -51,15 +56,15 @@ class UserArticleService:
         raise RuntimeError("Failed to select article by weight")  # Fallback for static analyzers; logically unreachable
     
 
-    async def update_weight(self, db: AsyncSession, user_artilce_id: int, delta: int):
+    async def update_weight(self, db: AsyncSession, user_id: int, artilce_id: int, delta: int):
         '''
         Updates the weight of a specific user-article relationship.
         The method applies the given delta value to the current weight of the article
         associated with the user, allowing the weight to be increased or decreased
         based on user learning progress.
         '''
-        user_article = await self.user_article_repo.get(db, user_artilce_id)
+        user_article = await self.user_article_repo.get(db, user_id, artilce_id)
         if user_article:
             weight = user_article.weight + delta
-            weight if weight >= 1 else 1
+            weight = max(weight, 1)
             await self.user_article_repo.update_weight(db, user_article, weight)
