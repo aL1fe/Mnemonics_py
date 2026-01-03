@@ -1,10 +1,12 @@
 from aiogram import Router, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import Command
+import logging
 
-from message_service import MessageService
+from app.services.message_service import MessageService
 
 
+logger = logging.getLogger(__name__)
 router = Router()
 
 
