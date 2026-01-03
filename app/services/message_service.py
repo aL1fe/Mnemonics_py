@@ -91,7 +91,8 @@ class MessageService:
                     # TODO check if the user is_sync
                     pass
 
-                logger.info(f"User with Id: {current_user.id} chose {'know' if delta > 0 else 'do not know'}")
+                logger.info(f"User with Id: {current_user.id} chose {'know' if delta < 0 else 'do not know'} "
+                            f"for word: '{current_user.last_article.eng_word}'")  # type: ignore
 
                 last_article_id = current_user.last_article.id if current_user.last_article is not None else None
                 if last_article_id is not None:
