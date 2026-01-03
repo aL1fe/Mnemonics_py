@@ -2,13 +2,7 @@ from aiogram import Router, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import Command
 
-from app.database.session import async_session
-from app.repositories.user_repo import UserRepo
-from app.services.user_service import UserService
-from app.repositories.article_repo import ArticleRepo
-from app.services.article_service import ArticleService
-from app.repositories.user_article_repo import UserArticleRepo
-from app.services.user_article_service import UserArticleService
+from message_service import MessageService
 
 
 router = Router()
@@ -29,94 +23,32 @@ async def sync_user_vocabulary(user_id: int) -> None:
     pass
 
 
-async def handle_article_feedback(message: Message, delta: int) -> None:
-    # TODO check if the user is_sync
-    telegram_user_id = message.from_user.id  # type: ignore
-    async with async_session() as db_session:
-        user_service = UserService(UserRepo())
-        current_user_id = await user_service.get_id_by_telegram_id(db_session, telegram_user_id)
-        if current_user_id is None:
-            # Should never happen; added for type checker
-            await message.answer("Помилка. Користувач не знайдений.")
-            return
-
-        current_user = await user_service.get_by_id(db_session, current_user_id)        
-        if current_user is None:
-            # Should never happen; added for type checker
-            await message.answer("Помилка. Користувач не знайдений.")
-            return
-        
-        last_article_id = current_user.last_article.id if current_user.last_article is not None else None
-        if last_article_id is not None:
-            user_article_service = UserArticleService(UserArticleRepo())
-            await user_article_service.update_weight(db_session, current_user_id, last_article_id, delta = delta)
-
-        user_article_service = UserArticleService(UserArticleRepo())    
-        next_article = await user_article_service.get_next_article(db_session, current_user_id, current_user.last_article)
-        await user_service.update_last_article(db_session, current_user.id, next_article.id)
-        await message.answer(next_article.ukr_word)
-        await message.answer(f"<tg-spoiler>{next_article.eng_word}</tg-spoiler>", parse_mode='HTML')
-
-
 @router.message(Command("start"))
 async def start_command(message: Message):
-    async with async_session() as db_session:
-        user_article_service = UserArticleService(UserArticleRepo())
+    keyboard = get_keyboard()
 
-        telegram_user_id = message.from_user.id  # type: ignore
-        telegram_user_name = message.from_user.username  # type: ignore
-        telegram_first_name = message.from_user.first_name  # type: ignore
-        telegram_last_name = message.from_user.last_name  # type: ignore
+    message_service = MessageService()
+    article = await message_service.start(message)
+    if article is None: return # Should never happen; added for type checker
+
+    await message.answer(article.ukr_word)
+    await message.answer(f"<tg-spoiler>{article.eng_word}</tg-spoiler>", parse_mode='HTML', reply_markup=keyboard)
     
-        # Check if user exist in the database
-        user_service = UserService(UserRepo())
-        current_user_id = await user_service.get_id_by_telegram_id(db_session, telegram_user_id)
-        current_user = None
-        if current_user_id is None:
-            # Create new user it the database
-            new_user = await user_service.create(db_session, 
-                telegram_user_id = telegram_user_id, 
-                telegram_user_name = telegram_user_name, 
-                telegram_first_name = telegram_first_name, 
-                telegram_last_name = telegram_last_name
-                )        
-            # Add user vocabulary to the new_user
-            article_service = ArticleService(ArticleRepo())
-            article_list = await article_service.get_all(db_session)
-            await user_article_service.init_user_vocabulary(db_session, 
-                user = new_user, 
-                article_list = article_list
-                )            
-            current_user = new_user
-        else:
-            # Get current user from the database
-            current_user = await user_service.get_by_id(db_session, current_user_id)
-        
-        if current_user is None:
-            # Should never happen; added for type checker
-            await message.answer("Помилка. Користувач не знайдений.")
-            return
-        
-        keyboard = get_keyboard()
-                
-        if current_user.last_article is None:
-            # If last_article is None get next article and save it to the user.last_article
-            next_article = await user_article_service.get_next_article(db_session, current_user.id, last_article=None)
-            await user_service.update_last_article(db_session, current_user.id, next_article.id)
-            await message.answer(next_article.ukr_word)
-            await message.answer(f"<tg-spoiler>{next_article.eng_word}</tg-spoiler>", parse_mode='HTML', reply_markup=keyboard)
-        else:
-            # Send user.last_article
-            await message.answer(current_user.last_article.ukr_word)
-            await message.answer(f"<tg-spoiler>{current_user.last_article.eng_word}</tg-spoiler>", parse_mode='HTML', reply_markup=keyboard)
-        
 
 async def handle_know(message: Message):
-    await handle_article_feedback(message, delta=-1)
+    message_service = MessageService()
+    next_article = await message_service.handle_article_feedback(message, delta=-1)
+    if next_article is None: return # Should never happen; added for type checker
+
+    await message.answer(next_article.ukr_word)
+    await message.answer(f"<tg-spoiler>{next_article.eng_word}</tg-spoiler>", parse_mode='HTML')
 
 
 async def handle_dont_know(message: Message):
-    await handle_article_feedback(message, delta=+1)
+    message_service = MessageService()
+    next_article = await message_service.handle_article_feedback(message, delta=+1)
+    await message.answer(next_article.ukr_word)  # type: ignore
+    await message.answer(f"<tg-spoiler>{next_article.eng_word}</tg-spoiler>", parse_mode='HTML')  # type: ignore
 
 
 async def handle_listen(message: Message):
