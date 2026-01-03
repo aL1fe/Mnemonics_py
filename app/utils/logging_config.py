@@ -20,7 +20,7 @@ def setup_logging(log_file: str = "app.log"):
 
     # --- File handler (no colors) ---
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
-    file_handler.setLevel(logging.DEBUG)  # file log level
+    file_handler.setLevel(logging.INFO)  # file log level
     file_handler.setFormatter(logging.Formatter(CustomFormatter().LOG_FORMAT))
 
     # --- Queue listener ---
