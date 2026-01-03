@@ -5,7 +5,8 @@ from config import settings
 
 
 engine = create_async_engine(
-    settings.DATABASE_URL(is_async=True), 
+    settings.DATABASE_URL(is_async=True),
+    isolation_level="READ COMMITTED",  # default level
     echo=False
 ) 
 
