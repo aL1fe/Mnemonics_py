@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from typing import Optional
 import logging
 
@@ -17,25 +17,18 @@ class UserRepo:
         telegram_first_name: Optional[str],
         telegram_last_name: Optional[str]) -> UserOrm:
         '''
-        Creates a new user_orm record with the given Telegram data and returns the persisted UserOrm.
+        Creates a new user_orm record with the given Telegram data and returns it.
         '''
-        try:
-            logger.debug(f"Creating user with telegram_user_id={telegram_user_id}")
-            user = UserOrm(
-                telegram_user_id=telegram_user_id,
-                telegram_user_name=telegram_user_name,
-                telegram_first_name=telegram_first_name,
-                telegram_last_name=telegram_last_name
-            )
-            db.add(user)
-            await db.commit()
-            await db.refresh(user)
-            logger.info(f"User created successfully: id={user.id}, telegram_user_id={telegram_user_id}")
-            return user
-        except Exception as e:
-            await db.rollback()
-            logger.critical(f"Failed to create user with telegram_user_id={telegram_user_id}: {e}")
-            raise
+        user = UserOrm(
+            telegram_user_id=telegram_user_id,
+            telegram_user_name=telegram_user_name,
+            telegram_first_name=telegram_first_name,
+            telegram_last_name=telegram_last_name
+        )
+        db.add(user)
+        await db.flush()  
+        await db.refresh(user)
+        return user
     
 
     @staticmethod
@@ -45,9 +38,10 @@ class UserRepo:
         '''
         query = (select(UserOrm)
                  .where(UserOrm.id == user_id)
-                 .options(selectinload(UserOrm.last_article))
+                #  .options(selectinload(UserOrm.last_article))
+                 .options(joinedload(UserOrm.last_article))
                 )
-        logger.debug(query.compile(compile_kwargs={"literal_binds": True}))
+        logger.debug(f"Query: {query.compile(compile_kwargs={"literal_binds": True})}")
         result = await db.execute(query)
         return result.scalar_one_or_none()
 
@@ -60,9 +54,10 @@ class UserRepo:
         query = (select(UserOrm.id)
                  .where(UserOrm.telegram_user_id == telegram_user_id)
                 )
-        logger.debug(query.compile(compile_kwargs={"literal_binds": True}))
+        logger.debug(f"Query: {query.compile(compile_kwargs={"literal_binds": True})}")
         result = await db.execute(query)
-        return result.scalar_one_or_none()
+        user_id = result.scalar_one_or_none()
+        return user_id
     
 
     @staticmethod
@@ -71,4 +66,3 @@ class UserRepo:
         Updates the last_article_id field for a given user_orm.
         '''
         user_orm.last_article_id = last_article_id
-        await db.commit()

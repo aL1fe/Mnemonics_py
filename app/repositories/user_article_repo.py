@@ -1,3 +1,4 @@
+import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
@@ -5,6 +6,9 @@ from typing import Sequence
 
 from app.models.user import User
 from app.models.user_article import UserArticle, UserArticleOrm
+
+
+logger = logging.getLogger(__name__)
 
 
 class UserArticleRepo:
@@ -22,7 +26,6 @@ class UserArticleRepo:
             for user_article in user_article_list
         ]
         db.add_all(user_articles_orm)
-        await db.commit()
 
 
     @staticmethod
@@ -34,6 +37,7 @@ class UserArticleRepo:
                  .options(joinedload(UserArticleOrm.article))  # Eagerly loading strategy
                  .where(UserArticleOrm.user_id == user_id)
         )
+        logger.debug(f"Query: {query.compile(compile_kwargs={"literal_binds": True})}")
         result = await db.execute(query)       
         return result.scalars().all()
     
@@ -47,6 +51,7 @@ class UserArticleRepo:
                  .where(UserArticleOrm.user_id == user_id,
                         UserArticleOrm.article_id == artilce_id)
                 )
+        logger.debug(f"Query: {query.compile(compile_kwargs={"literal_binds": True})}")
         result = await db.execute(query)
         return result.scalar_one_or_none()
     
@@ -57,5 +62,4 @@ class UserArticleRepo:
         Updates the weight of a user's article by applying the given delta value.
         '''
         user_artilce.weight = weight
-        await db.commit()
     
