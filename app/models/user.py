@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from sqlalchemy import ForeignKey, String, BigInteger
+from sqlalchemy import ForeignKey, BigInteger, Unicode
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from typing import TYPE_CHECKING, Optional, List
 
@@ -30,9 +30,9 @@ class UserOrm(Base):
         BigInteger,
         unique=True
     )
-    telegram_user_name: Mapped[Optional[str]] = mapped_column(String(100))
-    telegram_first_name: Mapped[Optional[str]] = mapped_column(String(100))
-    telegram_last_name: Mapped[Optional[str]] = mapped_column(String(100))
+    telegram_user_name: Mapped[Optional[str]] = mapped_column(Unicode(100))
+    telegram_first_name: Mapped[Optional[str]] = mapped_column(Unicode(100))
+    telegram_last_name: Mapped[Optional[str]] = mapped_column(Unicode(100))
     is_sync: Mapped[bool] = mapped_column(default=True)
 
     last_article_id: Mapped[Optional[int]] = mapped_column(ForeignKey("main_dictionary.id"), nullable=True)
