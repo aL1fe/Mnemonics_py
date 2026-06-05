@@ -2,6 +2,9 @@ from aiogram import Router, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import Command
 import logging
+from io import BytesIO
+import httpx
+import string
 
 from app.services.message_service import MessageService
 
@@ -23,6 +26,39 @@ def get_keyboard() -> ReplyKeyboardMarkup:
 
 async def sync_user_vocabulary(user_id: int) -> None:
     pass
+
+
+@router.message(F.voice)
+async def handle_voice(message: Message):
+    bot = message.bot
+    voice = message.voice
+
+    file_id = voice.file_id  # type: ignore
+    duration = voice.duration  # type: ignore
+    mime_type = voice.mime_type  # type: ignore
+
+    file = await bot.get_file(voice.file_id)  # type: ignore
+
+    buffer = BytesIO()
+    await bot.download_file(file.file_path, destination=buffer)  # type: ignore
+
+    audio_bytes = buffer.getvalue()
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "http://127.0.0.1:8005/upload/",
+            files={
+                "file": (
+                    "voice.ogg",
+                    audio_bytes,
+                    "audio/ogg"
+                )
+            },
+            timeout=30
+        )
+        resp_text = response.json()
+        result = resp_text.strip().rstrip(string.punctuation).lower()
+    await message.answer(result)
 
 
 @router.message(Command("start"))
