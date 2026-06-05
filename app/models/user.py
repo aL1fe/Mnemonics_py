@@ -46,7 +46,7 @@ class UserOrm(Base):
 -- MS SQL Server
 CREATE TABLE users(
 	id INT IDENTITY(1,1) PRIMARY KEY,
-	telegram_user_id INT NOT NULL,
+	telegram_user_id BIGINT NOT NULL,
 	telegram_user_name NVARCHAR(100) NULL,
 	telegram_first_name NVARCHAR(100) NULL,
 	telegram_last_name NVARCHAR(100) NULL,
