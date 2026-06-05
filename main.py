@@ -20,18 +20,18 @@ dp.include_router(router)
 async def daily_message():
     while True:
         now = datetime.now()
-        # Цель: 14:35 сегодня
-        target_time = datetime.combine(now.date(), time(14, 35))
+        # Target every day at 12:35
+        target_time = datetime.combine(now.date(), time(12, 35))
         if now >= target_time:
-            # если уже позже 14:35, переносим на завтра
+            # If it's already after 12:35 PM, we'll reschedule it for tomorrow
             target_time += timedelta(days=1)
         wait_seconds = (target_time - now).total_seconds()
-        await asyncio.sleep(wait_seconds)  # ждем до следующего 10 утра
-
+        await asyncio.sleep(wait_seconds)  # Wait until 12:35 PM
+ 
         try:
-            await bot.send_message(chat_id=450056320, text="Привет! Это сообщение в 10 утра")
+            await bot.send_message(chat_id=450056320, text="Привіт! Давай повторимо декілька слів.")
         except Exception as e:
-            logger.exception(f"Ошибка при отправке ежедневного сообщения: {e}")
+            logger.exception(f"Error sending daily message: {e}")
 
 
 async def main():
