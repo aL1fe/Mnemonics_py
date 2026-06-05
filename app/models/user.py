@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, String, BigInteger
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from typing import TYPE_CHECKING, Optional, List
 
@@ -27,6 +27,10 @@ class UserOrm(Base):
 
     id: Mapped[int_pk]    
     telegram_user_id: Mapped[int] = mapped_column(unique=True)
+    telegram_user_id: Mapped[int] = mapped_column(
+        BigInteger,
+        unique=True
+    )
     telegram_user_name: Mapped[Optional[str]] = mapped_column(String(100))
     telegram_first_name: Mapped[Optional[str]] = mapped_column(String(100))
     telegram_last_name: Mapped[Optional[str]] = mapped_column(String(100))
