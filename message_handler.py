@@ -7,6 +7,7 @@ import httpx
 import string
 
 from app.services.message_service import MessageService
+from config import settings
 
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ async def handle_voice(message: Message):
 
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            "http://127.0.0.1:8005/upload/",
+            f"{settings.WHISPER_URL}/upload/",
             files={
                 "file": (
                     "voice.ogg",

@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=f".env.{os.getenv('ENVIRONMENT', 'dev')}")
 
     TELEGRAM_API_TOKEN: str = "DEFAULT_TELEGRAM_API_TOKEN"
+    WHISPER_URL: str = "http://127.0.0.1:8006"
     
     DB_USER: str = ""
     DB_PASS: str = ""
