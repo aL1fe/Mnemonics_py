@@ -26,7 +26,6 @@ class UserOrm(Base):
     __tablename__ = "users"
 
     id: Mapped[int_pk]    
-    telegram_user_id: Mapped[int] = mapped_column(unique=True)
     telegram_user_id: Mapped[int] = mapped_column(
         BigInteger,
         unique=True
