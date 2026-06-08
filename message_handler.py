@@ -19,7 +19,7 @@ def get_keyboard() -> ReplyKeyboardMarkup:
         keyboard = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="Знаю"), KeyboardButton(text="Не знаю")],        
-            [KeyboardButton(text="Слухати"), KeyboardButton(text="Вимовити")]
+            # [KeyboardButton(text="Слухати"), KeyboardButton(text="Вимовити")]
         ],
         resize_keyboard=True)
         return keyboard
