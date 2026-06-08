@@ -33,6 +33,8 @@ async def daily_message():
         except Exception as e:
             logger.exception(f"Error sending daily message: {e}")
 
+        await asyncio.sleep(60)
+
 
 async def main():
     asyncio.create_task(daily_message())
