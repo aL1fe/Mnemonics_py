@@ -21,7 +21,7 @@ async def daily_message():
     while True:
         now = datetime.now()
         # Target every day at 12:35
-        target_time = datetime.combine(now.date(), time(12, 35))
+        target_time = datetime.combine(now.date(), time(15, 00))
         if now >= target_time:
             # If it's already after 12:35 PM, we'll reschedule it for tomorrow
             target_time += timedelta(days=1)
@@ -29,7 +29,7 @@ async def daily_message():
         await asyncio.sleep(wait_seconds)  # Wait until 12:35 PM
  
         try:
-            await bot.send_message(chat_id=450056320, text="Привіт! Давай повторимо декілька слів.")
+            await bot.send_message(chat_id=7544220131, text="Привіт! Анюта :) Давай повторимо декілька слів.")
         except Exception as e:
             logger.exception(f"Error sending daily message: {e}")
 
