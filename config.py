@@ -16,6 +16,13 @@ class Settings(BaseSettings):
 
     # @property
     def DATABASE_URL(self, is_async: bool = False) -> str:
+        pg = "asyncpg" if is_async else "psycopg2"  
+        return (
+            f"postgresql+{pg}://"
+            f"{self.DB_USER}:{self.DB_PASS}@"
+            f"{self.DB_HOST}:{self.DB_PORT}/"
+            f"{self.DB_NAME}"
+        )
         odbc = "aioodbc" if is_async else "pyodbc"
         return (
             f"mssql+{odbc}:///?odbc_connect="
@@ -24,13 +31,6 @@ class Settings(BaseSettings):
             f"Database={self.DB_NAME};"
             f"UID={self.DB_USER};"
             f"PWD={self.DB_PASS};"
-        )
-        pg = "asyncpg" if is_async else "psycopg2"  
-        return (
-            f"postgresql+{pg}://"
-            f"{self.DB_USER}:{self.DB_PASS}@"
-            f"{self.DB_HOST}:{self.DB_PORT}/"
-            f"{self.DB_NAME}"
         )
 
 settings = Settings()
