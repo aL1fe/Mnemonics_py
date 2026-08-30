@@ -21,3 +21,16 @@ alembic revision --autogenerate -m "init"
 alembic upgrade head
 alembic history
 
+Windows:
+Initial setup:
+.\setup.ps1
+Run app:
+.\.venv\Scripts\activate.ps1
+python .\main.py
+
+Linux:
+Initial setup:
+. ./setup.sh
+Run app:
+conda activate mnemonics
+python .\main.py
